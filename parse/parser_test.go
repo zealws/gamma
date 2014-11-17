@@ -8,6 +8,8 @@ import (
 
 var parseTestCases = []parseTestCase{
 	Pass("'abc", Quote(Symbol("abc"))),
+	Pass("1234", Integer(1234)),
+	Pass("0x123", Integer(291)),
 	Pass("(a b c)", List(Symbol("a"), Symbol("b"), Symbol("c"))),
 
 	Fail("'", "unexpected EOF in symbol expression at offset 2"),
@@ -31,12 +33,14 @@ func (c parseTestCase) Do(t *testing.T) {
 		if c.err == "" {
 			t.Errorf("Could not parse %q: %v", c.input, err)
 		} else if err.Error() != c.err {
-			t.Errorf("Expected %q but got %q", c.err, err.Error())
+			t.Errorf("Expected %q but got %q for %q", c.err, err.Error(), c.input)
 		}
+	} else if c.err != "" {
+		t.Errorf("Expected failure %q but got %q for %q", c.err, c.output, c.input)
 	} else if expr == nil && expr != c.output {
-		t.Errorf("Expected %v but got %v", c.output, expr)
+		t.Errorf("Expected %v but got %v for %q", c.output, expr, c.input)
 	} else if expr != nil && !IsEqStar(expr, c.output) {
-		t.Errorf("Expected %v but got %v", c.output, expr)
+		t.Errorf("Expected %v but got %v for %q", c.output, expr, c.input)
 	}
 }
 

@@ -1,6 +1,17 @@
 package sexpr
 
-// Atom Types
+import "fmt"
+
+/*
+Atom Types
+
+An atom type is any type that self-evaluates and is eq? to itself.
+
+That is, a value `v` is an atom if and only if:
+
+- `(eq? v v)`
+- `v` is a fixed point of the interpreter. (i.e. `(evaluate v)` yields `v`)
+*/
 
 /**
 *** Null
@@ -22,24 +33,6 @@ func (nullt) String() string {
 }
 
 /**
-*** Symbol
-**/
-
-type Symbol string
-
-func (sym Symbol) IsEq(other Comparable) bool {
-	othersym, ok := other.(Symbol)
-	if !ok {
-		return false
-	}
-	return sym == othersym
-}
-
-func (sym Symbol) String() string {
-	return string(sym)
-}
-
-/**
 *** Boolean
 **/
 
@@ -54,10 +47,7 @@ var (
 
 func (b Boolean) IsEq(other Comparable) bool {
 	otherb, ok := other.(Boolean)
-	if !ok {
-		return false
-	}
-	return b == otherb
+	return ok && b == otherb
 }
 
 func (b Boolean) String() string {
@@ -66,4 +56,34 @@ func (b Boolean) String() string {
 	} else {
 		return "#f"
 	}
+}
+
+/**
+*** Integers
+**/
+
+type Integer int64
+
+func (i Integer) IsEq(other Comparable) bool {
+	otheri, ok := other.(Integer)
+	return ok && i == otheri
+}
+
+func (i Integer) String() string {
+	return fmt.Sprintf("%d", int64(i))
+}
+
+/**
+*** Float
+**/
+
+type Float float64
+
+func (f Float) IsEq(other Comparable) bool {
+	otherf, ok := other.(Float)
+	return ok && f == otherf
+}
+
+func (f Float) String() string {
+	return fmt.Sprintf("%f", float64(f))
 }

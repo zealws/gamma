@@ -22,6 +22,14 @@ var (
 		Cons(Symbol("apply"), Invariant("apply")),
 		Cons(Symbol("call/cc"), Invariant("call/cc")),
 		Cons(Symbol("exit"), Invariant("exit")),
+		Cons(Symbol("+"), Invariant("+")),
+		Cons(Symbol("sum"), Invariant("+")),
+		Cons(Symbol("-"), Invariant("-")),
+		Cons(Symbol("subtract"), Invariant("-")),
+		//Cons(Symbol("*"), Invariant("*")),
+		//Cons(Symbol("/"), Invariant("/")),
+		//Cons(Symbol("^"), Invariant("^")),
+		//Cons(Symbol("%"), Invariant("%")),
 	)
 
 	Exit error = fmt.Errorf("interpreter exited")
@@ -67,14 +75,9 @@ exprValue:
 	// evaluate the expression `expr` with regard to `env` and call `C` with the result
 	in.trace("exprValue(expr,env,C)", expr, env, C)
 
-	if IsEq(expr, TrueLiteral) {
-		answer = TrueLiteral
-		goto applyC
-	} else if IsEq(expr, FalseLiteral) {
-		answer = FalseLiteral
-		goto applyC
-	} else if IsNull(expr) {
-		answer = Null
+	if IsAtom(expr) {
+		// Atoms are fixed-points of the interpreter
+		answer = expr
 		goto applyC
 	} else if IsSymbol(expr) {
 		sym = expr
@@ -241,6 +244,18 @@ appValue:
 			rator = f
 			randList = s
 			goto appValue
+		case "+":
+			exprList = randList
+			C = NewC9(C)
+			goto exprListValue
+		case "-":
+			exprList = randList
+			C = NewC10(C)
+			goto exprListValue
+		//case "*":
+		//case "/":
+		//case "%":
+		//case "^":
 		case "exit":
 			return nil, Exit
 		case "call/cc":
@@ -351,6 +366,22 @@ applyC:
 		// C8 is called during a define block with the evaluated expression
 		in.define(c.Symbol, answer)
 		answer = Null
+		C = c.C
+		goto applyC
+	case "c9":
+		// C9 is called during application of the sum function
+		answer, err = Sum(answer)
+		if err != nil {
+			return nil, err
+		}
+		C = c.C
+		goto applyC
+	case "c10":
+		// C10 is called during application of the subtract function
+		answer, err = Subtract(answer)
+		if err != nil {
+			return nil, err
+		}
 		C = c.C
 		goto applyC
 	default:

@@ -86,3 +86,13 @@ func NewC7(symList, randList, C SExpr) SExpr {
 func NewC8(symbol, C SExpr) SExpr {
 	return interpContinuation{id: "c8", C: C, Symbol: symbol}
 }
+
+// C9 is called during a sum with the list of evaluated sum arguments
+func NewC9(C SExpr) SExpr {
+	return interpContinuation{id: "c9", C: C}
+}
+
+// C9 is called during a subtraction with the list of evaluated sum arguments
+func NewC10(C SExpr) SExpr {
+	return interpContinuation{id: "c10", C: C}
+}

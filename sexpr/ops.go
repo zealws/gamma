@@ -47,6 +47,31 @@ func IsPair(e SExpr) bool {
 	return ok
 }
 
+// See atoms.go for a definition of an atom
+func IsAtom(e SExpr) bool {
+	switch e.(type) {
+	case Boolean:
+		return true
+	case nullt:
+		return true
+	case Integer:
+		return true
+	case Float:
+		return true
+	}
+	return false
+}
+
+func IsNumber(e SExpr) bool {
+	switch e.(type) {
+	case Integer:
+		return true
+	case Float:
+		return true
+	}
+	return false
+}
+
 /**
 *** Expression Wrappers
 **/
@@ -154,6 +179,11 @@ func Cdr(e SExpr) SExpr {
 }
 
 // Only use if you are absolutely sure that `e` is a pair
+func Cadr(e SExpr) SExpr {
+	return Car(Cdr(e))
+}
+
+// Only use if you are absolutely sure that `e` is a pair
 func Caar(e SExpr) SExpr {
 	return Car(Car(e))
 }
@@ -166,4 +196,99 @@ func Cdar(e SExpr) SExpr {
 // Only use if you are absolutely sure that `e` is a pair
 func Cadar(e SExpr) SExpr {
 	return Car(Cdr(Car(e)))
+}
+
+/**
+*** Math Primitives
+**/
+
+// Adds the two provided numbers, returns an error if they are not of numerical types.
+func Plus(a, b SExpr) (SExpr, error) {
+	switch at := a.(type) {
+	case Integer:
+		switch bt := b.(type) {
+		case Integer:
+			return Integer(int64(at) + int64(bt)), nil
+		case Float:
+			return Float(float64(int64(at)) + float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot add type %T", b)
+		}
+	case Float:
+		switch bt := b.(type) {
+		case Integer:
+			return Float(float64(at) + float64(int64(bt))), nil
+		case Float:
+			return Float(float64(at) + float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot add type %T", b)
+		}
+	default:
+		return nil, fmt.Errorf("Cannot add type %T", a)
+	}
+}
+
+// Sums all the numbers in the provided list. Returns an error if they are not of numerical types.
+func Sum(top SExpr) (SExpr, error) {
+	var err error
+	var result SExpr = Integer(0)
+	cur := top
+	for {
+		if IsNull(cur) {
+			break
+		}
+		result, err = Plus(Car(cur), result)
+		if err != nil {
+			return nil, err
+		}
+		cur = Cdr(cur)
+	}
+	return result, nil
+}
+
+// Subtracts the two provided numbers, returns an error if they are not of numerical types.
+func Minus(a, b SExpr) (SExpr, error) {
+	switch at := a.(type) {
+	case Integer:
+		switch bt := b.(type) {
+		case Integer:
+			return Integer(int64(at) - int64(bt)), nil
+		case Float:
+			return Float(float64(int64(at)) - float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot subtract type %T", b)
+		}
+	case Float:
+		switch bt := b.(type) {
+		case Integer:
+			return Float(float64(at) - float64(int64(bt))), nil
+		case Float:
+			return Float(float64(at) - float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot subtract type %T", b)
+		}
+	default:
+		return nil, fmt.Errorf("Cannot subtract type %T", a)
+	}
+}
+
+// Subtracts all the numbers in the provided list. Returns an error if they are not of numerical types.
+func Subtract(top SExpr) (SExpr, error) {
+	var err error
+	if IsNull(top) {
+		return nil, fmt.Errorf("subtraction expects at least one parameter")
+	}
+	var result SExpr = Car(top)
+	cur := Cdr(top)
+	for {
+		if IsNull(cur) {
+			break
+		}
+		result, err = Minus(result, Car(cur))
+		if err != nil {
+			return nil, err
+		}
+		cur = Cdr(cur)
+	}
+	return result, nil
 }

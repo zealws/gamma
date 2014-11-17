@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/zfjagann/gamma/sexpr"
 	"io"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -73,6 +74,9 @@ func (p *Parser) readSExpr() (sexpr.SExpr, bool, error) {
 		return p.readList()
 	} else if ch == '#' {
 		return p.readBoolean()
+	} else if unicode.IsDigit(ch) {
+		p.unread()
+		return p.readNumber()
 	} else {
 		p.unread()
 		return p.readSymbol()
@@ -160,4 +164,36 @@ func (p *Parser) readSymbol() (sexpr.SExpr, bool, error) {
 	}
 	p.reader.UnreadRune()
 	return sexpr.Symbol(name), err == io.EOF, nil
+}
+func (p *Parser) readNumber() (sexpr.SExpr, bool, error) {
+	numstr := ""
+	var err error
+	var ch rune
+	for ch, err = p.readCh(); ch != ' ' && ch != '\t' && ch != '\n' && ch != '(' && ch != ')'; ch, err = p.readCh() {
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				return nil, false, err
+			}
+		}
+		numstr += string(ch)
+	}
+	if numstr == "" && err == io.EOF {
+		return nil, false, p.error("unexpected EOF in number expression")
+	}
+	p.reader.UnreadRune()
+	if strings.Contains(numstr, ".") {
+		f, ferr := strconv.ParseFloat(numstr, 64)
+		if ferr != nil {
+			return nil, false, p.errorf("invalid float literal %q", numstr)
+		}
+		return sexpr.Float(f), err == io.EOF, nil
+	} else {
+		d, derr := strconv.ParseInt(numstr, 0, 64)
+		if derr != nil {
+			return nil, false, p.errorf("invalid integer literal %q", numstr)
+		}
+		return sexpr.Integer(d), err == io.EOF, nil
+	}
 }

@@ -65,6 +65,15 @@ var testCases = []testCase{
 	pass(
 		mustParse("((lambda (x) (cond (x 'a) (else 'b))) #f)"),
 		Symbol("b")),
+	pass(
+		mustParse("(+ 1 1)"),
+		Integer(2)),
+	pass(
+		mustParse("(- 1 1)"),
+		Integer(0)),
+	pass(
+		mustParse("(- 4 2 1)"),
+		Integer(1)),
 
 	/**
 	*** Negative Test Cases

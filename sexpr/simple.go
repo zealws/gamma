@@ -39,3 +39,21 @@ func NewContinuation(C SExpr) Continuation {
 func (b Continuation) String() string {
 	return fmt.Sprintf("<cont %v>", b.C)
 }
+
+/**
+*** Symbol
+**/
+
+type Symbol string
+
+func (sym Symbol) IsEq(other Comparable) bool {
+	othersym, ok := other.(Symbol)
+	if !ok {
+		return false
+	}
+	return sym == othersym
+}
+
+func (sym Symbol) String() string {
+	return string(sym)
+}

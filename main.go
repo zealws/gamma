@@ -1,10 +1,9 @@
 package main
 
 import (
-	"github.com/zfjagann/go-gamma/interp"
-	"github.com/zfjagann/go-gamma/parse"
-
 	"fmt"
+	"github.com/zfjagann/gamma/interp"
+	"github.com/zfjagann/gamma/parse"
 	"os"
 )
 

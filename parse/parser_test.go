@@ -1,8 +1,8 @@
 package parse_test
 
 import (
-	"github.com/zfjagann/go-gamma/parse"
-	. "github.com/zfjagann/go-gamma/sexpr"
+	"github.com/zfjagann/gamma/parse"
+	. "github.com/zfjagann/gamma/sexpr"
 
 	"testing"
 )

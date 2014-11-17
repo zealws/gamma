@@ -1,7 +1,7 @@
 package sexpr_test
 
 import (
-	. "github.com/zfjagann/go-gamma/sexpr"
+	. "github.com/zfjagann/gamma/sexpr"
 
 	"testing"
 )

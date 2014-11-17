@@ -28,5 +28,4 @@ func main() {
 			fmt.Printf("%v\n", output)
 		}
 	}
-	os.Exit(0)
 }

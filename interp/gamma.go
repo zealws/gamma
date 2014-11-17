@@ -14,23 +14,23 @@ var (
 	elseLiteral   SExpr = Symbol("else")
 
 	DefaultEnvironment SExpr = List(
-		Cons(Symbol("car"), Builtin("car")),
-		Cons(Symbol("cdr"), Builtin("cdr")),
-		Cons(Symbol("cons"), Builtin("cons")),
-		Cons(Symbol("eq?"), Builtin("eq?")),
-		Cons(Symbol("symbol?"), Builtin("symbol?")),
-		Cons(Symbol("null?"), Builtin("null?")),
-		Cons(Symbol("apply"), Builtin("apply")),
-		Cons(Symbol("call/cc"), Builtin("call/cc")),
-		Cons(Symbol("exit"), Builtin("exit")),
+		Cons(Symbol("car"), Invariant("car")),
+		Cons(Symbol("cdr"), Invariant("cdr")),
+		Cons(Symbol("cons"), Invariant("cons")),
+		Cons(Symbol("eq?"), Invariant("eq?")),
+		Cons(Symbol("symbol?"), Invariant("symbol?")),
+		Cons(Symbol("null?"), Invariant("null?")),
+		Cons(Symbol("apply"), Invariant("apply")),
+		Cons(Symbol("call/cc"), Invariant("call/cc")),
+		Cons(Symbol("exit"), Invariant("exit")),
 	)
 
 	Exit error = fmt.Errorf("interpreter exited")
 )
 
 type Interpreter struct {
-	env   SExpr
-	stack *ring.Ring
+	env       SExpr
+	stack     *ring.Ring
 	nextTrace bool
 }
 
@@ -180,7 +180,7 @@ appValue:
 	// apply the operation `rator` with `randList` as arguments and call `C` with the result
 	in.trace("appValue(rator,randList,C)", rator, randList, C)
 
-	if bi, ok := rator.(Builtin); ok {
+	if bi, ok := rator.(Invariant); ok {
 		switch string(bi) {
 		case "car":
 			answer, err = ECaar(randList)

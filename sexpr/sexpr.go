@@ -4,10 +4,6 @@ import (
 	"fmt"
 )
 
-var (
-	SimpleString bool = false
-)
-
 type Comparable interface {
 	IsEq(other Comparable) bool
 }
@@ -18,7 +14,7 @@ Implementations:
 	Symbol
 	Boolean
 	*Pair
-	*Builtin
+	*Invariant
 */
 type SExpr interface {
 	// IsEq(other SExpr) bool
@@ -119,9 +115,6 @@ func List(exprs ...SExpr) SExpr {
 }
 
 func (p *Pair) String() string {
-	if SimpleString {
-		return fmt.Sprintf("(%v . %v)", p.Car, p.Cdr)
-	}
 	return "(" + p.privString() + ")"
 }
 
@@ -135,20 +128,20 @@ func (p *Pair) privString() string {
 }
 
 /**
-*** Interpreter Builtin
+*** Interpreter Invariant
 **/
 
-type Builtin string
+type Invariant string
 
-func (b Builtin) IsEq(other Comparable) bool {
-	otherb, ok := other.(Builtin)
+func (b Invariant) IsEq(other Comparable) bool {
+	otherb, ok := other.(Invariant)
 	if !ok {
 		return false
 	}
 	return b == otherb
 }
 
-func (b Builtin) String() string {
+func (b Invariant) String() string {
 	return fmt.Sprintf("<built-in %s>", string(b))
 }
 

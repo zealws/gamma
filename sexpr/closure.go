@@ -1,15 +1,13 @@
-package interp
+package sexpr
 
 import (
-	. "github.com/zfjagann/gamma/sexpr"
-
 	"fmt"
 )
 
 type Closure struct {
 	SymList SExpr
-	Body SExpr
-	Env SExpr
+	Body    SExpr
+	Env     SExpr
 }
 
 func NewClosure(symList, body, env SExpr) *Closure {

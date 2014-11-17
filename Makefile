@@ -8,6 +8,7 @@ gamma: test
 .PHONY: 
 test:
 	cd sexpr/ && go ${GOFLAGS} test ${TESTFLAGS}
+	cd transform/ && go ${GOFLAGS} test ${TESTFLAGS}
 	cd parse/ && go ${GOFLAGS} test ${TESTFLAGS}
 	cd interp/ && go ${GOFLAGS} test ${TESTFLAGS}
 	go ${GOFLAGS} test ${TESTFLAGS}
@@ -15,6 +16,7 @@ test:
 .PHONY: fmt
 fmt:
 	cd sexpr/ && go ${GOFLAGS} fmt
+	cd transform/ && go ${GOFLAGS} fmt
 	cd parse/ && go ${GOFLAGS} fmt
 	cd interp/ && go ${GOFLAGS} fmt
 	go ${GOFLAGS} fmt
@@ -22,6 +24,7 @@ fmt:
 .PHONY: vet
 vet:
 	cd sexpr/ && go ${GOFLAGS} vet
+	cd transform/ && go ${GOFLAGS} vet
 	cd parse/ && go ${GOFLAGS} vet
 	cd interp/ && go ${GOFLAGS} vet
 	go ${GOFLAGS} vet

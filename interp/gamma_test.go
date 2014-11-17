@@ -1,10 +1,9 @@
 package interp
 
 import (
+	"fmt"
 	"github.com/zfjagann/gamma/parse"
 	. "github.com/zfjagann/gamma/sexpr"
-
-	"fmt"
 	"testing"
 )
 

@@ -1,10 +1,9 @@
 package parse
 
 import (
-	"github.com/zfjagann/gamma/sexpr"
-
 	"bufio"
 	"fmt"
+	"github.com/zfjagann/gamma/sexpr"
 	"io"
 	"strings"
 	"unicode"

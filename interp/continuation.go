@@ -1,15 +1,24 @@
 package interp
 
 import (
-	. "github.com/zfjagann/gamma/sexpr"
-
 	"fmt"
+	. "github.com/zfjagann/gamma/sexpr"
 )
 
 type interpContinuation struct {
-	id string
-	Expr, ExprList, Answer, Clauses, Env, SymList, RandList, Symbol, C SExpr
-	Rator *Closure
+	// These arguments are named after their arguments in the original scheme interpreter.
+	// They can probably be collapsed. No continuation uses more than 2 of the SExprs.
+	id       string
+	Expr     SExpr
+	ExprList SExpr
+	Answer   SExpr
+	Clauses  SExpr
+	Env      SExpr
+	SymList  SExpr
+	RandList SExpr
+	Symbol   SExpr
+	C        SExpr
+	Rator    *Closure
 }
 
 func (c interpContinuation) String() string {
@@ -25,7 +34,7 @@ func (c interpContinuation) String() string {
 	for _, val := range []SExpr{c.Env, c.SymList, c.RandList, c.Symbol, c.C} {
 		if val != nil {
 			s += fmt.Sprintf(" %v", val)
-		}	
+		}
 	}
 	s += ">"
 	return s

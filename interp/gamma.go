@@ -1,9 +1,8 @@
 package interp
 
 import (
-	. "github.com/zfjagann/gamma/sexpr"
-
 	"fmt"
+	. "github.com/zfjagann/gamma/sexpr"
 	"github.com/zfjagann/golang-ring"
 )
 

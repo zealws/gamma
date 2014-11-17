@@ -93,6 +93,12 @@ var testCases = []testCase{
 		mustParse("(env)"),
 		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar")),
 		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar"))),
+	pass(
+		mustParse("((lambda x 'foo) 'bar)"),
+		Symbol("foo")),
+	pass(
+		mustParse("((lambda x x) 'foo 'bar 'baz)"),
+		List(Symbol("foo"), Symbol("bar"), Symbol("baz"))),
 
 	/**
 	*** Negative Test Cases

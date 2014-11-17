@@ -23,10 +23,10 @@ var (
 		Symbol("call/cc"), Invariant("call/cc"),
 		Symbol("exit"), Invariant("exit"),
 		Symbol("env"), Invariant("env"),
-		Symbol("+"), Invariant("+"),
-		Symbol("-"), Invariant("-"),
-		Symbol("*"), Invariant("*"),
-		Symbol("/"), Invariant("/"),
+		Symbol("+"), builtin{"+", Sum},
+		Symbol("-"), builtin{"-", Subtract},
+		Symbol("*"), builtin{"*", Product},
+		Symbol("/"), builtin{"/", Quotient},
 		//Symbol("^"), Invariant("^"),
 		//Symbol("%"), Invariant("%"),
 	)
@@ -196,7 +196,11 @@ appValue:
 	// apply the operation `rator` with `randList` as arguments and call `C` with the result
 	in.trace("appValue(rator,randList,C)", rator, randList, C)
 
-	if bi, ok := rator.(Invariant); ok {
+	if bi, ok := rator.(builtin); ok {
+		exprList = randList
+		C = bi.cont(C)
+		goto exprListValue
+	} else if bi, ok := rator.(Invariant); ok {
 		switch string(bi) {
 		case "car":
 			answer, err = ECaar(randList)
@@ -267,21 +271,20 @@ appValue:
 			goto applyC
 		case "+":
 			exprList = randList
-			C = NewC9(C)
+			C = NewCTag("sum", C)
 			goto exprListValue
 		case "-":
 			exprList = randList
-			C = NewC10(C)
+			C = NewCTag("subtraction", C)
 			goto exprListValue
 		case "*":
 			exprList = randList
-			C = NewC7(C)
+			C = NewCTag("product", C)
 			goto exprListValue
 		case "/":
 			exprList = randList
-			C = NewC11(C)
+			C = NewCTag("quotient", C)
 			goto exprListValue
-		//case "/":
 		//case "%":
 		//case "^":
 		case "exit":
@@ -311,13 +314,17 @@ appValue:
 	}
 
 augmentedEnv:
-	// augment the environment `env` with symbols `symList` and values `randList` and call `C` with the modified environment stored in answerEnv
+	// augment the environment `env` with symbols `symList` and values `randList` and call `C` with the modified environment
 	in.trace("augmentedEnv(symList,randList,env,C)", symList, randList, env, C)
 
 	answerEnv = env
 	for {
 		if IsNull(symList) {
 			goto applyC
+		} else if IsSymbol(symList) {
+			answerEnv = answerEnv.Put(symList, randList)
+			symList = Null
+			randList = Null
 		} else {
 			answerEnv = answerEnv.Put(Car(symList), Car(randList))
 			symList = Cdr(symList)
@@ -328,103 +335,110 @@ augmentedEnv:
 applyC:
 	// apply the continuation `C` to the value `answer`
 	// the continuation values defined below are a result of continuation function literals
-	// in the original scheme interpreter that have been transliterated to Go
+	// in the original scheme interpreter that have been translated to Go
 	in.trace("applyC(answer,C)", answer, C)
 
 	if C == CID {
 		// the program has finished computing
 		return answer, nil
 	}
-	c, ok := C.(interpContinuation)
-	if !ok {
-		return nil, fmt.Errorf("invalid continuation value: %v", C)
-	}
-	switch c.id {
-	case "c1":
-		// C1 is the recursive call during a function application called after the rator has been evaluated
-		// C1 evaluates the parameter list, then calls C2 which calls performs the function call
-		exprList = Cdr(c.Expr)
-		env = c.Env
-		C = NewC2(answer, c.Env, c.C)
-		goto exprListValue
-	case "c2":
-		// C2 is the continuation from a function application called after the rator and randList have been evaluated
-		// C2 applies the function rator to the parameter list `randList`
-		rator = c.Answer
-		randList = answer
-		env = c.Env
-		C = c.C
-		goto appValue
-	case "c3":
-		// C3 is the continuation from the recursive case of exprListValue which performs the tail recursion
-		exprList = Cdr(c.ExprList)
-		env = c.Env
-		C = NewC4(answer, c.C)
-		goto exprListValue
-	case "c4":
-		// C4 is the continuation from the recursive case of exprListValue which performs the
-		// cons on the result of the previous two computations
-		answer = Cons(c.Answer, answer)
+	if c, ok := C.(*builtinContinuation); ok {
+		answer, err = c.b.f(answer)
+		if err != nil {
+			return nil, err
+		}
 		C = c.C
 		goto applyC
-	case "c5":
-		// C5 is the continuation from the recursive case of condValue
-		if !IsEq(answer, FalseLiteral) {
-			expr = Cadar(c.Clauses)
+	} else if c, ok := C.(interpContinuation); ok {
+		switch c.id {
+		case "c1":
+			// C1 is the recursive call during a function application called after the rator has been evaluated
+			// C1 evaluates the parameter list, then calls C2 which calls performs the function call
+			exprList = Cdr(c.Expr)
 			env = c.Env
+			C = NewC2(answer, c.Env, c.C)
+			goto exprListValue
+		case "c2":
+			// C2 is the continuation from a function application called after the rator and randList have been evaluated
+			// C2 applies the function rator to the parameter list `randList`
+			rator = c.Answer
+			randList = answer
+			env = c.Env
+			C = c.C
+			goto appValue
+		case "c3":
+			// C3 is the continuation from the recursive case of exprListValue which performs the tail recursion
+			exprList = Cdr(c.ExprList)
+			env = c.Env
+			C = NewC4(answer, c.C)
+			goto exprListValue
+		case "c4":
+			// C4 is the continuation from the recursive case of exprListValue which performs the
+			// cons on the result of the previous two computations
+			answer = Cons(c.Answer, answer)
+			C = c.C
+			goto applyC
+		case "c5":
+			// C5 is the continuation from the recursive case of condValue
+			if !IsEq(answer, FalseLiteral) {
+				expr = Cadar(c.Clauses)
+				env = c.Env
+				C = c.C
+				goto exprValue
+			} else {
+				clauses = Cdr(c.Clauses)
+				env = c.Env
+				C = c.C
+				goto condValue
+			}
+		case "c6":
+			// C6 is the continuation called during a closure evaluation with the environment
+			expr = c.Rator.Body
+			env = answerEnv
 			C = c.C
 			goto exprValue
-		} else {
-			clauses = Cdr(c.Clauses)
-			env = c.Env
+		case "c8":
+			// C8 is called during a define block with the evaluated expression
+			in.define(c.Symbol, answer)
+			answer = Null
 			C = c.C
-			goto condValue
+			goto applyC
+		case "cproduct":
+			// C7 is called during a product with the list of evaluated expressions
+			answer, err = Product(answer)
+			if err != nil {
+				return nil, err
+			}
+			C = c.C
+			goto applyC
+		case "c+":
+			// C9 is called during application of the sum function
+			answer, err = Sum(answer)
+			if err != nil {
+				return nil, err
+			}
+			C = c.C
+			goto applyC
+		case "csubtraction":
+			// C10 is called during application of the subtract function
+			answer, err = Subtract(answer)
+			if err != nil {
+				return nil, err
+			}
+			C = c.C
+			goto applyC
+		case "cquotient":
+			// C11 is called during application of the quotient function
+			answer, err = Quotient(answer)
+			if err != nil {
+				return nil, err
+			}
+			C = c.C
+			goto applyC
+		default:
+			return nil, fmt.Errorf("invalid continuation value: %v", C)
 		}
-	case "c6":
-		// C6 is the continuation called during a closure evaluation with the environment
-		expr = c.Rator.Body
-		env = answerEnv
-		C = c.C
-		goto exprValue
-	case "c7":
-		// C7 is called during a product with the list of evaluated expressions
-		answer, err = Product(answer)
-		if err != nil {
-			return nil, err
-		}
-		C = c.C
-		goto applyC
-	case "c8":
-		// C8 is called during a define block with the evaluated expression
-		in.define(c.Symbol, answer)
-		answer = Null
-		C = c.C
-		goto applyC
-	case "c9":
-		// C9 is called during application of the sum function
-		answer, err = Sum(answer)
-		if err != nil {
-			return nil, err
-		}
-		C = c.C
-		goto applyC
-	case "c10":
-		// C10 is called during application of the subtract function
-		answer, err = Subtract(answer)
-		if err != nil {
-			return nil, err
-		}
-		C = c.C
-		goto applyC
-	case "c11":
-		// C11 is called during application of the quotient function
-		answer, err = Quotient(answer)
-		if err != nil {
-			return nil, err
-		}
-		C = c.C
-		goto applyC
-	default:
+	} else {
 		return nil, fmt.Errorf("invalid continuation value: %v", C)
 	}
 }

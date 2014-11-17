@@ -7,10 +7,10 @@ import (
 type Closure struct {
 	SymList SExpr
 	Body    SExpr
-	Env     SExpr
+	Env     *Environ
 }
 
-func NewClosure(symList, body, env SExpr) *Closure {
+func NewClosure(symList, body SExpr, env *Environ) *Closure {
 	return &Closure{symList, body, env}
 }
 

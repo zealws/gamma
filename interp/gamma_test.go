@@ -16,7 +16,7 @@ var testCases = []testCase{
 	passEnv(
 		Symbol("foo"),
 		Symbol("bar"),
-		List(Cons(Symbol("foo"), Symbol("bar")))),
+		MakeEnviron(Symbol("foo"), Symbol("bar"))),
 	pass(
 		mustParse("'(a b c d)"),
 		List(Symbol("a"), Symbol("b"), Symbol("c"), Symbol("d"))),
@@ -69,11 +69,30 @@ var testCases = []testCase{
 		mustParse("(+ 1 1)"),
 		Integer(2)),
 	pass(
+		mustParse("(+ 1 1 15)"),
+		Integer(17)),
+	pass(
+		mustParse("(* 2 5)"),
+		Integer(10)),
+	pass(
+		mustParse("(* 2 5 3)"),
+		Integer(30)),
+	pass(
+		mustParse("(/ 16 4)"),
+		Integer(4)),
+	pass(
+		mustParse("(/ 36 4 3)"),
+		Integer(3)),
+	pass(
 		mustParse("(- 1 1)"),
 		Integer(0)),
 	pass(
 		mustParse("(- 4 2 1)"),
 		Integer(1)),
+	passEnv(
+		mustParse("(env)"),
+		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar")),
+		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar"))),
 
 	/**
 	*** Negative Test Cases
@@ -166,7 +185,7 @@ func mustParse(input string) SExpr {
 }
 
 type testCase struct {
-	env   SExpr
+	env   *Environ
 	check func(*testing.T, SExpr, error) string
 	input SExpr
 }
@@ -179,16 +198,16 @@ func pass(input SExpr, expected SExpr) testCase {
 			if err != nil {
 				return fmt.Sprintf("Could not evaluate %v: %v", input, err)
 			} else if actual == nil {
-				return fmt.Sprintf("Expected %v but was %v", expected, actual)
+				return fmt.Sprintf("Expected %v but was %v for %v", expected, actual, input)
 			} else if !IsEqStar(expected, actual) {
-				return fmt.Sprintf("Expected %v but was %v", expected, actual)
+				return fmt.Sprintf("Expected %v but was %v for %v", expected, actual, input)
 			}
 			return ""
 		},
 	}
 }
 
-func passEnv(input SExpr, expected SExpr, env SExpr) testCase {
+func passEnv(input, expected SExpr, env *Environ) testCase {
 	return testCase{
 		env:   env,
 		input: input,
@@ -220,7 +239,7 @@ func fail(input SExpr, msg string) testCase {
 	}
 }
 
-func failEnv(input SExpr, msg string, env SExpr) testCase {
+func failEnv(input SExpr, msg string, env *Environ) testCase {
 	return testCase{
 		env:   env,
 		input: input,

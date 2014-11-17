@@ -25,6 +25,10 @@ func IsEqStar(rawa, rawb SExpr) bool {
 		if pb, ok := rawb.(*Pair); ok {
 			return IsEqStar(pa.Car, pb.Car) && IsEqStar(pa.Cdr, pb.Cdr)
 		}
+	} else if ea, ok := rawa.(*Environ); ok {
+		if eb, ok := rawb.(*Environ); ok {
+			return IsEqStar(ea.Value, eb.Value)
+		}
 	}
 	return IsEq(rawa, rawb)
 }
@@ -285,6 +289,97 @@ func Subtract(top SExpr) (SExpr, error) {
 			break
 		}
 		result, err = Minus(result, Car(cur))
+		if err != nil {
+			return nil, err
+		}
+		cur = Cdr(cur)
+	}
+	return result, nil
+}
+
+// Multiplies the two provided numbers, returns an error if they are not of numerical types.
+func Multiply(a, b SExpr) (SExpr, error) {
+	switch at := a.(type) {
+	case Integer:
+		switch bt := b.(type) {
+		case Integer:
+			return Integer(int64(at) * int64(bt)), nil
+		case Float:
+			return Float(float64(int64(at)) * float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot multiply type %T", b)
+		}
+	case Float:
+		switch bt := b.(type) {
+		case Integer:
+			return Float(float64(at) * float64(int64(bt))), nil
+		case Float:
+			return Float(float64(at) * float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot multiply type %T", b)
+		}
+	default:
+		return nil, fmt.Errorf("Cannot multiply type %T", a)
+	}
+}
+
+// Multiplies all the numbers in the provided list. Returns an error if they are not of numerical types.
+func Product(top SExpr) (SExpr, error) {
+	var err error
+	var result SExpr = Integer(1)
+	cur := top
+	for {
+		if IsNull(cur) {
+			break
+		}
+		result, err = Multiply(Car(cur), result)
+		if err != nil {
+			return nil, err
+		}
+		cur = Cdr(cur)
+	}
+	return result, nil
+}
+
+// divides the two provided numbers, returns an error if they are not of numerical types.
+func Divide(a, b SExpr) (SExpr, error) {
+	switch at := a.(type) {
+	case Integer:
+		switch bt := b.(type) {
+		case Integer:
+			return Integer(int64(at) / int64(bt)), nil
+		case Float:
+			return Float(float64(int64(at)) / float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot divide type %T", b)
+		}
+	case Float:
+		switch bt := b.(type) {
+		case Integer:
+			return Float(float64(at) / float64(int64(bt))), nil
+		case Float:
+			return Float(float64(at) / float64(bt)), nil
+		default:
+			return nil, fmt.Errorf("Cannot divide type %T", b)
+		}
+	default:
+		return nil, fmt.Errorf("Cannot divide type %T", a)
+	}
+}
+
+// divides all the numbers in the provided list. Returns an error if they are not of numerical types.
+func Quotient(top SExpr) (SExpr, error) {
+	var err error
+	if IsNull(top) {
+		return nil, fmt.Errorf("division expects at least one parameter")
+	}
+	var result SExpr = Car(top)
+	cur := Cdr(top)
+	for {
+		if IsNull(cur) {
+			break
+		}
+		result, err = Divide(result, Car(cur))
 		if err != nil {
 			return nil, err
 		}

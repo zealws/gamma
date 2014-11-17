@@ -12,43 +12,59 @@ var (
 	condLiteral   SExpr = Symbol("cond")
 	elseLiteral   SExpr = Symbol("else")
 
-	DefaultEnvironment SExpr = List(
-		Cons(Symbol("car"), Invariant("car")),
-		Cons(Symbol("cdr"), Invariant("cdr")),
-		Cons(Symbol("cons"), Invariant("cons")),
-		Cons(Symbol("eq?"), Invariant("eq?")),
-		Cons(Symbol("symbol?"), Invariant("symbol?")),
-		Cons(Symbol("null?"), Invariant("null?")),
-		Cons(Symbol("apply"), Invariant("apply")),
-		Cons(Symbol("call/cc"), Invariant("call/cc")),
-		Cons(Symbol("exit"), Invariant("exit")),
-		Cons(Symbol("+"), Invariant("+")),
-		Cons(Symbol("sum"), Invariant("+")),
-		Cons(Symbol("-"), Invariant("-")),
-		Cons(Symbol("subtract"), Invariant("-")),
-		//Cons(Symbol("*"), Invariant("*")),
-		//Cons(Symbol("/"), Invariant("/")),
-		//Cons(Symbol("^"), Invariant("^")),
-		//Cons(Symbol("%"), Invariant("%")),
+	DefaultEnvironment *Environ = MakeEnviron(
+		Symbol("car"), Invariant("car"),
+		Symbol("cdr"), Invariant("cdr"),
+		Symbol("cons"), Invariant("cons"),
+		Symbol("eq?"), Invariant("eq?"),
+		Symbol("symbol?"), Invariant("symbol?"),
+		Symbol("null?"), Invariant("null?"),
+		Symbol("apply"), Invariant("apply"),
+		Symbol("call/cc"), Invariant("call/cc"),
+		Symbol("exit"), Invariant("exit"),
+		Symbol("env"), Invariant("env"),
+		Symbol("+"), Invariant("+"),
+		Symbol("-"), Invariant("-"),
+		Symbol("*"), Invariant("*"),
+		Symbol("/"), Invariant("/"),
+		//Symbol("^"), Invariant("^"),
+		//Symbol("%"), Invariant("%"),
 	)
+
+	//DefaultEnvironment SExpr = List(
+	//	Cons(Symbol("car"), Invariant("car")),
+	//	Cons(Symbol("cdr"), Invariant("cdr")),
+	//	Cons(Symbol("cons"), Invariant("cons")),
+	//	Cons(Symbol("eq?"), Invariant("eq?")),
+	//	Cons(Symbol("symbol?"), Invariant("symbol?")),
+	//	Cons(Symbol("null?"), Invariant("null?")),
+	//	Cons(Symbol("apply"), Invariant("apply")),
+	//	Cons(Symbol("call/cc"), Invariant("call/cc")),
+	//	Cons(Symbol("exit"), Invariant("exit")),
+	//	Cons(Symbol("env"), Invariant("env")),
+	//	Cons(Symbol("+"), Invariant("+")),
+	//	Cons(Symbol("sum"), Invariant("+")),
+	//	Cons(Symbol("-"), Invariant("-")),
+	//	Cons(Symbol("subtract"), Invariant("-")),
+	//)
 
 	Exit error = fmt.Errorf("interpreter exited")
 )
 
 type Interpreter struct {
-	env       SExpr
+	env       *Environ
 	stack     *ring.Ring
 	nextTrace bool
 }
 
-func NewInterpreter(env SExpr) *Interpreter {
+func NewInterpreter(env *Environ) *Interpreter {
 	stack := &ring.Ring{}
 	stack.SetCapacity(TraceMaxSize)
 	return &Interpreter{env, stack, true}
 }
 
 func (in *Interpreter) define(symbol, expr SExpr) SExpr {
-	in.env = Cons(Cons(symbol, expr), in.env)
+	in.env = in.env.Put(symbol, expr)
 	return Null
 }
 
@@ -56,16 +72,18 @@ func (in *Interpreter) Evaluate(expr SExpr) (SExpr, error) {
 	return in.schemeValue(in.env, expr)
 }
 
-func (in *Interpreter) schemeValue(env, expr SExpr) (result SExpr, err error) {
-	defer func() {
-		e := recover()
-		if e != nil {
-			result = nil
-			err = fmt.Errorf("panic: %v", e)
-		}
-	}()
+func (in *Interpreter) schemeValue(env *Environ, expr SExpr) (result SExpr, err error) {
+	//defer func() {
+	//	e := recover()
+	//	if e != nil {
+	//		result = nil
+	//		err = fmt.Errorf("panic: %v", e)
+	//	}
+	//}()
 	var (
 		clauses, exprList, C, randList, rator, sym, symList, answer SExpr
+		found                                                       bool
+		answerEnv                                                   *Environ
 	)
 
 	C = CID
@@ -134,15 +152,11 @@ symValue:
 	// perform an environment lookup of `sym` within `env` and call `C` with the result
 	in.trace("symValue(sym,env,C)", sym, env, C)
 
-	if IsEq(env, Null) {
+	answer, found = env.Get(sym)
+	if !found {
 		return nil, fmt.Errorf("environment lookup failed for symbol %q", sym.(Symbol))
-	} else if IsEq(Caar(env), sym) {
-		answer = Cdar(env)
-		goto applyC
 	} else {
-		env = Cdr(env)
-		in.ignoreNextTrace()
-		goto symValue
+		goto applyC
 	}
 
 condValue:
@@ -244,6 +258,13 @@ appValue:
 			rator = f
 			randList = s
 			goto appValue
+		case "env":
+			l := randLength(randList)
+			if l != 0 {
+				return nil, fmt.Errorf("env expectes no parameters but was given %v", randList)
+			}
+			answer = env
+			goto applyC
 		case "+":
 			exprList = randList
 			C = NewC9(C)
@@ -252,7 +273,14 @@ appValue:
 			exprList = randList
 			C = NewC10(C)
 			goto exprListValue
-		//case "*":
+		case "*":
+			exprList = randList
+			C = NewC7(C)
+			goto exprListValue
+		case "/":
+			exprList = randList
+			C = NewC11(C)
+			goto exprListValue
 		//case "/":
 		//case "%":
 		//case "^":
@@ -283,21 +311,22 @@ appValue:
 	}
 
 augmentedEnv:
-	// augment the environment `env` with symbols `symList` and values `randList` and call `C` with the modified environment
+	// augment the environment `env` with symbols `symList` and values `randList` and call `C` with the modified environment stored in answerEnv
 	in.trace("augmentedEnv(symList,randList,env,C)", symList, randList, env, C)
 
-	if IsEq(symList, Null) {
-		answer = env
-		goto applyC
-	} else {
-		C = NewC7(symList, randList, C)
-		symList = Cdr(symList)
-		randList = Cdr(randList)
-		goto augmentedEnv
+	answerEnv = env
+	for {
+		if IsNull(symList) {
+			goto applyC
+		} else {
+			answerEnv = answerEnv.Put(Car(symList), Car(randList))
+			symList = Cdr(symList)
+			randList = Cdr(randList)
+		}
 	}
 
 applyC:
-	// call the continuation `C` to the value `answer`
+	// apply the continuation `C` to the value `answer`
 	// the continuation values defined below are a result of continuation function literals
 	// in the original scheme interpreter that have been transliterated to Go
 	in.trace("applyC(answer,C)", answer, C)
@@ -352,14 +381,17 @@ applyC:
 			goto condValue
 		}
 	case "c6":
-		// C6 is the continuation called during a closure evaluation with the argument list
+		// C6 is the continuation called during a closure evaluation with the environment
 		expr = c.Rator.Body
-		env = answer
+		env = answerEnv
 		C = c.C
 		goto exprValue
 	case "c7":
-		// C7 is the continuation from the recursive case of augmentedEnv
-		answer = Cons(Cons(Car(c.SymList), Car(c.RandList)), answer)
+		// C7 is called during a product with the list of evaluated expressions
+		answer, err = Product(answer)
+		if err != nil {
+			return nil, err
+		}
 		C = c.C
 		goto applyC
 	case "c8":
@@ -384,7 +416,26 @@ applyC:
 		}
 		C = c.C
 		goto applyC
+	case "c11":
+		// C11 is called during application of the quotient function
+		answer, err = Quotient(answer)
+		if err != nil {
+			return nil, err
+		}
+		C = c.C
+		goto applyC
 	default:
 		return nil, fmt.Errorf("invalid continuation value: %v", C)
+	}
+}
+
+func randLength(randList SExpr) int {
+	l := 0
+	for {
+		if IsNull(randList) {
+			return l
+		}
+		l += 1
+		randList = Cdr(randList)
 	}
 }

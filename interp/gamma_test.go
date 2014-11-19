@@ -107,7 +107,7 @@ var testCases = []testCase{
 		Symbol("a"),
 		`environment lookup failed for symbol "a"`),
 	fail(
-		List(Symbol("car"), List(Symbol("a"), Symbol("b"))),
+        mustParse("(car (a b))"),
 		`environment lookup failed for symbol "a"`),
 	fail(
 		mustParse("(lambda)"),
@@ -135,55 +135,70 @@ var testCases = []testCase{
 		`invalid empty cond condition`),
 	fail(
 		mustParse("(cons 'a)"),
-		`missing expr in cons: (cons a)`),
+		`<built-in cons> expects 2 arguments but was given 1`),
 	fail(
 		mustParse("(cons)"),
-		`missing expr in cons: (cons)`),
+		`<built-in cons> expects 2 arguments but was given 0`),
 	fail(
 		mustParse("(eq? 'a)"),
-		`missing expr in eq?: (eq? a)`),
+		`<built-in eq?> expects 2 arguments but was given 1`),
 	fail(
 		mustParse("(eq?)"),
-		`missing expr in eq?: (eq?)`),
+		`<built-in eq?> expects 2 arguments but was given 0`),
 	fail(
 		mustParse("(symbol?)"),
-		`missing expr in symbol?: (symbol?)`),
+		`<built-in symbol?> expects 1 arguments but was given 0`),
 	fail(
 		mustParse("(null?)"),
-		`missing expr in null?: (null?)`),
+		`<built-in null?> expects 1 arguments but was given 0`),
 	fail(
 		mustParse("(apply 'a)"),
-		`missing expr in apply: (apply a)`),
+		`<built-in apply> expects 2 arguments but was given 1`),
 	fail(
 		mustParse("(apply)"),
-		`missing expr in apply: (apply)`),
+		`<built-in apply> expects 2 arguments but was given 0`),
 	fail(
 		mustParse("(call/cc)"),
-		`missing expr in call/cc: (call/cc)`),
+		`<built-in call/cc> expects 1 arguments but was given 0`),
     fail(
         mustParse("((lambda (x) 'a))"),
-        `closure expects 1 arguments but was given 0`),
+        `<closure> expects 1 arguments but was given 0`),
 }
 
 func TestDefinesSymbol(t *testing.T) {
 	interp := NewInterpreter(DefaultEnvironment)
-	_, err := interp.Evaluate(mustParse("(define a '(a))"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	expr, err := interp.Evaluate(mustParse("a"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected := List(Symbol("a"))
-	if !IsEqStar(expr, expected) {
-		t.Fatalf("Expected %v but was %v", expected, expr)
-	}
+    assertEvaluates(t, interp, "(define a '(a))", nil)
+    assertEvaluates(t, interp, "a", List(Symbol("a")))
+}
+
+func TestDefinesRecursiveFunction(t *testing.T) {
+    interp := NewInterpreter(DefaultEnvironment)
+    assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
+    assertEvaluates(t, interp, "(len '(a b c d))", Integer(4))
+}
+
+func TestCanFormatRecursiveFunction(t *testing.T) {
+    interp := NewInterpreter(DefaultEnvironment)
+    assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
+    expr := assertEvaluates(t, interp, "len", nil)
+    // If this call recurses, bad things happen.
+    expr.String()
 }
 
 /**
 *** Utilities Below This Point
 **/
+
+func assertEvaluates(t *testing.T, interp *Interpreter, input string, expected SExpr) SExpr {
+    expr, err := interp.Evaluate(mustParse(input))
+    if err != nil {
+        t.Fatal(err)
+    }
+    if expected != nil && !IsEqStar(expr, expected) {
+		t.Fatalf("Expected %v but was %v", expected, expr)
+    }
+    return expr
+}
 
 func mustParse(input string) SExpr {
 	expr, err := parse.Parse(input)

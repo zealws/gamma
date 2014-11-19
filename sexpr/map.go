@@ -81,5 +81,5 @@ func (e *Environ) Put(key, value SExpr) *Environ {
 }
 
 func (e *Environ) String() string {
-	return fmt.Sprintf("<environ %v>", e.Value)
+	return fmt.Sprintf("<environ>")
 }

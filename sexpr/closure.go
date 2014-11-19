@@ -1,9 +1,5 @@
 package sexpr
 
-import (
-	"fmt"
-)
-
 type Closure struct {
 	SymList SExpr
 	Body    SExpr
@@ -15,5 +11,5 @@ func NewClosure(symList, body SExpr, env *Environ) *Closure {
 }
 
 func (c *Closure) String() string {
-	return fmt.Sprintf("<closure %v %v %v>", c.SymList, c.Body, c.Env)
+	return "<closure>"
 }

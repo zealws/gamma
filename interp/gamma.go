@@ -187,80 +187,76 @@ appValue:
 	} else if bi, ok := rator.(Invariant); ok {
 		switch string(bi) {
 		case "car":
+            if err := checkLen(1, rator, randList); err != nil {
+                return nil, err
+            }
 			answer, err = ECaar(randList)
 			if err != nil {
 				return nil, err
 			}
 			goto applyC
 		case "cdr":
+            if err := checkLen(1, rator, randList); err != nil {
+                return nil, err
+            }
 			answer, err = ECdar(randList)
 			if err != nil {
 				return nil, err
 			}
 			goto applyC
 		case "cons":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
-			s, err := ECadr(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
+            if err := checkLen(2, rator, randList); err != nil {
+                return nil, err
+            }
+			f := Car(randList)
+			s := Cadr(randList)
 			answer = Cons(f, s)
 			goto applyC
 		case "eq?":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
-			s, err := ECadr(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
+            if err := checkLen(2, rator, randList); err != nil {
+                return nil, err
+            }
+			f := Car(randList)
+			s := Cadr(randList)
 			answer = IsEqExpr(f, s)
 			goto applyC
 		case "symbol?":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
+            if err := checkLen(1, rator, randList); err != nil {
+                return nil, err
+            }
+			f := Car(randList)
 			answer = IsSymbolExpr(f)
 			goto applyC
 		case "null?":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
+            if err := checkLen(1, rator, randList); err != nil {
+                return nil, err
+            }
+			f := Car(randList)
 			answer = IsNullExpr(f)
 			goto applyC
 		case "apply":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
-			s, err := ECadr(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
-			rator = f
-			randList = s
+            if err := checkLen(2, rator, randList); err != nil {
+                return nil, err
+            }
+			rator = Car(randList)
+			randList = Cadr(randList)
 			goto appValue
 		case "env":
-			l := randLength(randList)
-			if l != 0 {
-				return nil, fmt.Errorf("env expectes no parameters but was given %v", randList)
-			}
+            if err := checkLen(0, rator, randList); err != nil {
+                return nil, err
+            }
 			answer = env
 			goto applyC
 		case "exit":
+            if err := checkLen(0, rator, randList); err != nil {
+                return nil, err
+            }
 			return nil, Exit
 		case "call/cc":
-			f, err := ECar(randList)
-			if err != nil {
-				return nil, fmt.Errorf("missing expr in %s: %v", string(bi), Cons(Symbol(string(bi)), randList))
-			}
-			rator = f
+            if err := checkLen(1, rator, randList); err != nil {
+                return nil, err
+            }
+			rator = Car(randList)
 			randList = List(NewContinuation(C))
 			goto appValue
 		default:
@@ -292,9 +288,8 @@ augmentedEnv:
 			symList = Null
 			randList = Null
 		} else {
-            symLen, randLen := randLength(symList), randLength(randList)
-            if symLen != randLen {
-                return nil, fmt.Errorf("closure expects %d arguments but was given %d", symLen, randLen)
+            if err := checkLen(randLength(symList), rator, randList); err != nil {
+                return nil, err
             }
 			answerEnv = answerEnv.Put(Car(symList), Car(randList))
 			symList = Cdr(symList)
@@ -369,6 +364,10 @@ applyC:
 			goto exprValue
 		case "c8":
 			// C8 is called during a define block with the evaluated expression
+            if clos, ok := answer.(*Closure); ok {
+                // Cheap hack to make recursive functions work
+                clos.Env = clos.Env.Put(c.Symbol, clos)
+            }
 			in.define(c.Symbol, answer)
 			answer = Null
 			C = c.C
@@ -390,4 +389,12 @@ func randLength(randList SExpr) int {
 		l += 1
 		randList = Cdr(randList)
 	}
+}
+
+func checkLen(size int, rator, randList SExpr) error {
+    actual := randLength(randList)
+    if actual != size {
+        return fmt.Errorf("%v expects %d arguments but was given %d", rator, size, actual)
+    }
+    return nil
 }

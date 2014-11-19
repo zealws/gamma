@@ -160,6 +160,9 @@ var testCases = []testCase{
 	fail(
 		mustParse("(call/cc)"),
 		`missing expr in call/cc: (call/cc)`),
+    fail(
+        mustParse("((lambda (x) 'a))"),
+        `closure expects 1 arguments but was given 0`),
 }
 
 func TestDefinesSymbol(t *testing.T) {

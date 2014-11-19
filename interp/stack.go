@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/zfjagann/gamma/sexpr"
 	"strings"
+    "runtime"
 )
 
 const TraceMaxSize int = 1024 // 1K max frames in a stack trace
@@ -50,7 +51,7 @@ func (f *StackFrame) String() string {
 		name = f.spec[0:idx]
 		columns = strings.Split(f.spec[idx+1:len(f.spec)-1], ",")
 	}
-	str := "\033[32m" + name + "\033[39m("
+	str := "\033[32m" + name + "\033[39m"
 	for i, v := range f.exprs {
 		str += "\n  "
 		if columns != nil {
@@ -58,7 +59,6 @@ func (f *StackFrame) String() string {
 		}
 		str += fmt.Sprintf("%v", v)
 	}
-	str += ")"
 	return str
 }
 
@@ -82,4 +82,10 @@ func (t StackTrace) String() string {
 		s += f.String()
 	}
 	return s
+}
+
+func getStack() string {
+    buf := make([]byte, 1024, 1024)
+    i := runtime.Stack(buf, false)
+    return string(buf[0:i])
 }

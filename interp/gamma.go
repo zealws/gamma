@@ -31,23 +31,6 @@ var (
 		//Symbol("%"), Invariant("%"),
 	)
 
-	//DefaultEnvironment SExpr = List(
-	//	Cons(Symbol("car"), Invariant("car")),
-	//	Cons(Symbol("cdr"), Invariant("cdr")),
-	//	Cons(Symbol("cons"), Invariant("cons")),
-	//	Cons(Symbol("eq?"), Invariant("eq?")),
-	//	Cons(Symbol("symbol?"), Invariant("symbol?")),
-	//	Cons(Symbol("null?"), Invariant("null?")),
-	//	Cons(Symbol("apply"), Invariant("apply")),
-	//	Cons(Symbol("call/cc"), Invariant("call/cc")),
-	//	Cons(Symbol("exit"), Invariant("exit")),
-	//	Cons(Symbol("env"), Invariant("env")),
-	//	Cons(Symbol("+"), Invariant("+")),
-	//	Cons(Symbol("sum"), Invariant("+")),
-	//	Cons(Symbol("-"), Invariant("-")),
-	//	Cons(Symbol("subtract"), Invariant("-")),
-	//)
-
 	Exit error = fmt.Errorf("interpreter exited")
 )
 
@@ -73,13 +56,14 @@ func (in *Interpreter) Evaluate(expr SExpr) (SExpr, error) {
 }
 
 func (in *Interpreter) schemeValue(env *Environ, expr SExpr) (result SExpr, err error) {
-	//defer func() {
-	//	e := recover()
-	//	if e != nil {
-	//		result = nil
-	//		err = fmt.Errorf("panic: %v", e)
-	//	}
-	//}()
+	defer func() {
+		e := recover()
+		if e != nil {
+            fmt.Printf("panic: %v\n%s\n", e, getStack())
+			result = nil
+			err = fmt.Errorf("panic: %v", e)
+		}
+	}()
 	var (
 		clauses, exprList, C, randList, rator, sym, symList, answer SExpr
 		found                                                       bool
@@ -269,24 +253,6 @@ appValue:
 			}
 			answer = env
 			goto applyC
-		case "+":
-			exprList = randList
-			C = NewCTag("sum", C)
-			goto exprListValue
-		case "-":
-			exprList = randList
-			C = NewCTag("subtraction", C)
-			goto exprListValue
-		case "*":
-			exprList = randList
-			C = NewCTag("product", C)
-			goto exprListValue
-		case "/":
-			exprList = randList
-			C = NewCTag("quotient", C)
-			goto exprListValue
-		//case "%":
-		//case "^":
 		case "exit":
 			return nil, Exit
 		case "call/cc":
@@ -326,6 +292,10 @@ augmentedEnv:
 			symList = Null
 			randList = Null
 		} else {
+            symLen, randLen := randLength(symList), randLength(randList)
+            if symLen != randLen {
+                return nil, fmt.Errorf("closure expects %d arguments but was given %d", symLen, randLen)
+            }
 			answerEnv = answerEnv.Put(Car(symList), Car(randList))
 			symList = Cdr(symList)
 			randList = Cdr(randList)
@@ -401,38 +371,6 @@ applyC:
 			// C8 is called during a define block with the evaluated expression
 			in.define(c.Symbol, answer)
 			answer = Null
-			C = c.C
-			goto applyC
-		case "cproduct":
-			// C7 is called during a product with the list of evaluated expressions
-			answer, err = Product(answer)
-			if err != nil {
-				return nil, err
-			}
-			C = c.C
-			goto applyC
-		case "c+":
-			// C9 is called during application of the sum function
-			answer, err = Sum(answer)
-			if err != nil {
-				return nil, err
-			}
-			C = c.C
-			goto applyC
-		case "csubtraction":
-			// C10 is called during application of the subtract function
-			answer, err = Subtract(answer)
-			if err != nil {
-				return nil, err
-			}
-			C = c.C
-			goto applyC
-		case "cquotient":
-			// C11 is called during application of the quotient function
-			answer, err = Quotient(answer)
-			if err != nil {
-				return nil, err
-			}
 			C = c.C
 			goto applyC
 		default:

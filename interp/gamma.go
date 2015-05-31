@@ -2,6 +2,8 @@ package interp
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/zfjagann/gamma/sexpr"
 	"github.com/zfjagann/golang-ring"
 )
@@ -23,6 +25,8 @@ var (
 		Symbol("call/cc"), Invariant("call/cc"),
 		Symbol("exit"), Invariant("exit"),
 		Symbol("env"), Invariant("env"),
+		Symbol("time"), Invariant("time"),
+		Symbol("sleep"), Invariant("sleep"),
 		Symbol("+"), builtin{"+", Sum},
 		Symbol("-"), builtin{"-", Subtract},
 		Symbol("*"), builtin{"*", Product},
@@ -59,7 +63,7 @@ func (in *Interpreter) schemeValue(env *Environ, expr SExpr) (result SExpr, err 
 	defer func() {
 		e := recover()
 		if e != nil {
-            fmt.Printf("panic: %v\n%s\n", e, getStack())
+			fmt.Printf("panic: %v\n%s\n", e, getStack())
 			result = nil
 			err = fmt.Errorf("panic: %v", e)
 		}
@@ -187,78 +191,96 @@ appValue:
 	} else if bi, ok := rator.(Invariant); ok {
 		switch string(bi) {
 		case "car":
-            if err := checkLen(1, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
 			answer, err = ECaar(randList)
 			if err != nil {
 				return nil, err
 			}
 			goto applyC
 		case "cdr":
-            if err := checkLen(1, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
 			answer, err = ECdar(randList)
 			if err != nil {
 				return nil, err
 			}
 			goto applyC
 		case "cons":
-            if err := checkLen(2, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(2, rator, randList); err != nil {
+				return nil, err
+			}
 			f := Car(randList)
 			s := Cadr(randList)
 			answer = Cons(f, s)
 			goto applyC
 		case "eq?":
-            if err := checkLen(2, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(2, rator, randList); err != nil {
+				return nil, err
+			}
 			f := Car(randList)
 			s := Cadr(randList)
 			answer = IsEqExpr(f, s)
 			goto applyC
 		case "symbol?":
-            if err := checkLen(1, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
 			f := Car(randList)
 			answer = IsSymbolExpr(f)
 			goto applyC
 		case "null?":
-            if err := checkLen(1, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
 			f := Car(randList)
 			answer = IsNullExpr(f)
 			goto applyC
 		case "apply":
-            if err := checkLen(2, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(2, rator, randList); err != nil {
+				return nil, err
+			}
 			rator = Car(randList)
 			randList = Cadr(randList)
 			goto appValue
 		case "env":
-            if err := checkLen(0, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(0, rator, randList); err != nil {
+				return nil, err
+			}
 			answer = env
 			goto applyC
 		case "exit":
-            if err := checkLen(0, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(0, rator, randList); err != nil {
+				return nil, err
+			}
 			return nil, Exit
 		case "call/cc":
-            if err := checkLen(1, rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
 			rator = Car(randList)
 			randList = List(NewContinuation(C))
 			goto appValue
+		case "time":
+			if err := checkLen(0, rator, randList); err != nil {
+				return nil, err
+			}
+			answer = Integer(time.Now().UnixNano() / 1000000)
+			goto applyC
+		case "sleep":
+			if err := checkLen(1, rator, randList); err != nil {
+				return nil, err
+			}
+			f := Car(randList)
+			if t, ok := f.(Integer); ok {
+				time.Sleep(time.Duration(t) * time.Second)
+			} else {
+				return nil, fmt.Errorf("Invalid time value: %v", f)
+			}
+			answer = Integer(time.Now().UnixNano() / 1000000)
+			goto applyC
 		default:
 			return nil, fmt.Errorf("unknown built-in method: %q", string(bi))
 		}
@@ -288,9 +310,9 @@ augmentedEnv:
 			symList = Null
 			randList = Null
 		} else {
-            if err := checkLen(randLength(symList), rator, randList); err != nil {
-                return nil, err
-            }
+			if err := checkLen(randLength(symList), rator, randList); err != nil {
+				return nil, err
+			}
 			answerEnv = answerEnv.Put(Car(symList), Car(randList))
 			symList = Cdr(symList)
 			randList = Cdr(randList)
@@ -364,10 +386,10 @@ applyC:
 			goto exprValue
 		case "c8":
 			// C8 is called during a define block with the evaluated expression
-            if clos, ok := answer.(*Closure); ok {
-                // Cheap hack to make recursive functions work
-                clos.Env = clos.Env.Put(c.Symbol, clos)
-            }
+			if clos, ok := answer.(*Closure); ok {
+				// Cheap hack to make recursive functions work
+				clos.Env = clos.Env.Put(c.Symbol, clos)
+			}
 			in.define(c.Symbol, answer)
 			answer = Null
 			C = c.C
@@ -392,9 +414,9 @@ func randLength(randList SExpr) int {
 }
 
 func checkLen(size int, rator, randList SExpr) error {
-    actual := randLength(randList)
-    if actual != size {
-        return fmt.Errorf("%v expects %d arguments but was given %d", rator, size, actual)
-    }
-    return nil
+	actual := randLength(randList)
+	if actual != size {
+		return fmt.Errorf("%v expects %d arguments but was given %d", rator, size, actual)
+	}
+	return nil
 }

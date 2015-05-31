@@ -15,6 +15,7 @@ var parseTestCases = []parseTestCase{
 	Fail("'", "unexpected EOF in symbol expression at offset 2"),
 	Fail("(a b", "unexpected EOF in list at offset 6"),
 	Fail("(a b .)", "unexpected ')'. expecting symbol at offset 9"),
+	Fail("", "EOF"),
 }
 
 /**

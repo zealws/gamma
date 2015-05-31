@@ -64,9 +64,16 @@ func (p *Parser) readSExpr() (sexpr.SExpr, bool, error) {
 		}
 	}
 
+	if err == io.EOF {
+		return nil, false, io.EOF
+	}
+
 	if ch == '\'' {
 		literalExpr, eof, err := p.readSExpr()
 		if err != nil {
+			if err == io.EOF {
+				return nil, false, p.error("unexpected EOF in symbol expression")
+			}
 			return nil, false, err
 		}
 		return sexpr.Quote(literalExpr), eof, nil

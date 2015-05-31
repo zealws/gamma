@@ -3,8 +3,8 @@ package interp
 import (
 	"fmt"
 	"github.com/zfjagann/gamma/sexpr"
+	"runtime"
 	"strings"
-    "runtime"
 )
 
 const TraceMaxSize int = 1024 // 1K max frames in a stack trace
@@ -85,7 +85,7 @@ func (t StackTrace) String() string {
 }
 
 func getStack() string {
-    buf := make([]byte, 1024, 1024)
-    i := runtime.Stack(buf, false)
-    return string(buf[0:i])
+	buf := make([]byte, 1024, 1024)
+	i := runtime.Stack(buf, false)
+	return string(buf[0:i])
 }

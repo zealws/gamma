@@ -2,11 +2,12 @@ GOFLAGS=
 TESTFLAGS=
 BUILDFLAGS=
 
-gamma: test
+.PHONY: gamma
+gamma: *.go */*.go test
 	go ${GOFLAGS} build ${BUILDFLAGS} -o gamma
 
 .PHONY: 
-test:
+test: *.go */*.go
 	cd sexpr/ && go ${GOFLAGS} test ${TESTFLAGS}
 	cd transform/ && go ${GOFLAGS} test ${TESTFLAGS}
 	cd parse/ && go ${GOFLAGS} test ${TESTFLAGS}

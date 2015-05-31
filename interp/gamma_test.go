@@ -107,7 +107,7 @@ var testCases = []testCase{
 		Symbol("a"),
 		`environment lookup failed for symbol "a"`),
 	fail(
-        mustParse("(car (a b))"),
+		mustParse("(car (a b))"),
 		`environment lookup failed for symbol "a"`),
 	fail(
 		mustParse("(lambda)"),
@@ -160,29 +160,29 @@ var testCases = []testCase{
 	fail(
 		mustParse("(call/cc)"),
 		`<built-in call/cc> expects 1 arguments but was given 0`),
-    fail(
-        mustParse("((lambda (x) 'a))"),
-        `<closure> expects 1 arguments but was given 0`),
+	fail(
+		mustParse("((lambda (x) 'a))"),
+		`<closure> expects 1 arguments but was given 0`),
 }
 
 func TestDefinesSymbol(t *testing.T) {
 	interp := NewInterpreter(DefaultEnvironment)
-    assertEvaluates(t, interp, "(define a '(a))", nil)
-    assertEvaluates(t, interp, "a", List(Symbol("a")))
+	assertEvaluates(t, interp, "(define a '(a))", nil)
+	assertEvaluates(t, interp, "a", List(Symbol("a")))
 }
 
 func TestDefinesRecursiveFunction(t *testing.T) {
-    interp := NewInterpreter(DefaultEnvironment)
-    assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
-    assertEvaluates(t, interp, "(len '(a b c d))", Integer(4))
+	interp := NewInterpreter(DefaultEnvironment)
+	assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
+	assertEvaluates(t, interp, "(len '(a b c d))", Integer(4))
 }
 
 func TestCanFormatRecursiveFunction(t *testing.T) {
-    interp := NewInterpreter(DefaultEnvironment)
-    assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
-    expr := assertEvaluates(t, interp, "len", nil)
-    // If this call recurses, bad things happen.
-    expr.String()
+	interp := NewInterpreter(DefaultEnvironment)
+	assertEvaluates(t, interp, "(define len (lambda (x) (cond ((null? x) 0) (else (+ 1 (len (cdr x)))))))", nil)
+	expr := assertEvaluates(t, interp, "len", nil)
+	// If this call recurses, bad things happen.
+	expr.String()
 }
 
 /**
@@ -190,14 +190,14 @@ func TestCanFormatRecursiveFunction(t *testing.T) {
 **/
 
 func assertEvaluates(t *testing.T, interp *Interpreter, input string, expected SExpr) SExpr {
-    expr, err := interp.Evaluate(mustParse(input))
-    if err != nil {
-        t.Fatal(err)
-    }
-    if expected != nil && !IsEqStar(expr, expected) {
+	expr, err := interp.Evaluate(mustParse(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if expected != nil && !IsEqStar(expr, expected) {
 		t.Fatalf("Expected %v but was %v", expected, expr)
-    }
-    return expr
+	}
+	return expr
 }
 
 func mustParse(input string) SExpr {

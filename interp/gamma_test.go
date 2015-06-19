@@ -99,6 +99,9 @@ var testCases = []testCase{
 	pass(
 		mustParse("((lambda x x) 'foo 'bar 'baz)"),
 		List(Symbol("foo"), Symbol("bar"), Symbol("baz"))),
+    pass(
+        mustParse("(map (lambda (x) (cons 'x x)) '(a b c))"),
+        mustParse("'((x a) (x b) (x c))")),
 
 	/**
 	*** Negative Test Cases

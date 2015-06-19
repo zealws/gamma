@@ -25,9 +25,11 @@ type Map interface {
 	/*
 		Set a key to equal a value within the map.
 
-		Returns a map with the value of `key` set to `value`.
+		Returns a map with all the values in the original map, as well as
+		the value of `key` set to `value`.
 
-		(The returned map may be the current map.)
+		(The returned map may be the same object as the original map, but
+		need not necessarily be to allow for one-way-mutable maps.)
 	*/
 	Set(key, value SExpr) Map
 }

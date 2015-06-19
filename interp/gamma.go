@@ -13,6 +13,7 @@ var (
 	defineLiteral SExpr = Symbol("define")
 	condLiteral   SExpr = Symbol("cond")
 	elseLiteral   SExpr = Symbol("else")
+	ifLiteral     SExpr = Symbol("if")
 
 	DefaultEnvironment *Environ = MakeEnviron(
 		Symbol("car"), Invariant("car"),
@@ -94,6 +95,24 @@ exprValue:
 	} else if IsEq(Car(expr), condLiteral) {
 		clauses = Cdr(expr)
 		goto condValue
+	} else if IsEq(Car(expr), ifLiteral) {
+		_len := randLength(Cdr(expr))
+		if _len < 3 {
+			return nil, fmt.Errorf("missing parameter from if statement: %v", expr)
+		} else if _len > 3 {
+			return nil, fmt.Errorf("extra parameters from if statement: %v", expr)
+		}
+		_cond, err := ECadr(expr)
+		if err != nil {
+			return nil, fmt.Errorf("CCCC: %v", expr)
+		}
+		_exprs, err := ECddr(expr)
+		if err != nil {
+			return nil, fmt.Errorf("AAAA: %v", expr)
+		}
+		C = NewC9(_exprs, C)
+		expr = _cond
+		goto exprValue
 	} else if IsEq(Car(expr), lambdaLiteral) {
 		argList, err := ECadr(expr)
 		if err != nil {
@@ -367,7 +386,7 @@ applyC:
 			goto applyC
 		case "c5":
 			// C5 is the continuation from the recursive case of condValue
-			if !IsEq(answer, FalseLiteral) {
+			if !IsEq(answer, False) {
 				expr = Cadar(c.Clauses)
 				env = c.Env
 				C = c.C
@@ -394,6 +413,15 @@ applyC:
 			answer = Null
 			C = c.C
 			goto applyC
+		case "c9":
+			// C9 is called during an if with the evaluated condition
+			if IsEq(answer, False) {
+				expr = Cadr(c.ExprList)
+			} else {
+				expr = Car(c.ExprList)
+			}
+			C = c.C
+			goto exprValue
 		default:
 			return nil, fmt.Errorf("invalid continuation value: %v", C)
 		}

@@ -107,3 +107,8 @@ func NewC6(rator *Closure, C SExpr) SExpr {
 func NewC8(symbol, C SExpr) SExpr {
 	return interpContinuation{id: "c8", C: C, Symbol: symbol}
 }
+
+// C9 is called during an if with the evaluated condition
+func NewC9(exprList, C SExpr) SExpr {
+	return interpContinuation{id: "c9", C: C, ExprList: exprList}
+}

@@ -99,6 +99,12 @@ var testCases = []testCase{
 	pass(
 		mustParse("((lambda x x) 'foo 'bar 'baz)"),
 		List(Symbol("foo"), Symbol("bar"), Symbol("baz"))),
+	pass(
+		mustParse("(if #t 'a 'b)"),
+		Symbol("a")),
+	pass(
+		mustParse("(if #f 'a 'b)"),
+		Symbol("b")),
 
 	/**
 	*** Negative Test Cases
@@ -163,6 +169,18 @@ var testCases = []testCase{
 	fail(
 		mustParse("((lambda (x) 'a))"),
 		`<closure> expects 1 arguments but was given 0`),
+	fail(
+		mustParse("(if)"),
+		`missing parameter from if statement: (if)`),
+	fail(
+		mustParse("(if 'a)"),
+		`missing parameter from if statement: (if 'a)`),
+	fail(
+		mustParse("(if 'a 'b)"),
+		`missing parameter from if statement: (if 'a 'b)`),
+	fail(
+		mustParse("(if 'a 'b 'c 'd)"),
+		`extra parameters from if statement: (if 'a 'b 'c 'd)`),
 }
 
 func TestDefinesSymbol(t *testing.T) {

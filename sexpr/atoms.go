@@ -39,10 +39,8 @@ func (nullt) String() string {
 type Boolean bool
 
 var (
-	True         SExpr = Boolean(true)
-	TrueLiteral  SExpr = True
-	False        SExpr = Boolean(false)
-	FalseLiteral SExpr = False
+	True  SExpr = Boolean(true)
+	False SExpr = Boolean(false)
 )
 
 func (b Boolean) IsEq(other Comparable) bool {

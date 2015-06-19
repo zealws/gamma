@@ -124,6 +124,14 @@ func ECadr(e SExpr) (SExpr, error) {
 	return ECar(p)
 }
 
+func ECddr(e SExpr) (SExpr, error) {
+	p, err := ECdr(e)
+	if err != nil {
+		return nil, err
+	}
+	return ECdr(p)
+}
+
 func ECdar(e SExpr) (SExpr, error) {
 	p, err := ECar(e)
 	if err != nil {
@@ -141,23 +149,31 @@ func ECaar(e SExpr) (SExpr, error) {
 }
 
 func ECaddr(e SExpr) (SExpr, error) {
-	p, err := ECdr(e)
-	if err != nil {
-		return nil, err
-	}
-	p, err = ECdr(p)
+	p, err := ECddr(e)
 	if err != nil {
 		return nil, err
 	}
 	return ECar(p)
 }
 
-func ECadar(e SExpr) (SExpr, error) {
-	p, err := ECar(e)
+func ECdddr(e SExpr) (SExpr, error) {
+	p, err := ECddr(e)
 	if err != nil {
 		return nil, err
 	}
-	p, err = ECdr(p)
+	return ECdr(p)
+}
+
+func ECadar(e SExpr) (SExpr, error) {
+	p, err := ECdar(e)
+	if err != nil {
+		return nil, err
+	}
+	return ECar(p)
+}
+
+func ECadddr(e SExpr) (SExpr, error) {
+	p, err := ECdddr(e)
 	if err != nil {
 		return nil, err
 	}

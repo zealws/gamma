@@ -48,15 +48,13 @@ func NewEnviron() *Environ {
 }
 
 /*
-This seems like an awkward way to create an environment. Figure something else out in the future.
+Builds an environment from the given map. The keys in the map are converted to
+symbols before being added to the environment.
 */
-func MakeEnviron(expressions ...SExpr) *Environ {
-	if len(expressions)%2 != 0 {
-		panic("MakeEnviron expects even number of parameters")
-	}
+func BuildSymbolEnviron(exprs map[string]SExpr) *Environ {
 	e := NewEnviron()
-	for i := 0; i < len(expressions); i += 2 {
-		e = e.Put(expressions[i], expressions[i+1])
+	for k, v := range exprs {
+		e = e.Put(Symbol(k), v)
 	}
 	return e
 }

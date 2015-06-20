@@ -15,26 +15,26 @@ var (
 	elseLiteral   SExpr = Symbol("else")
 	ifLiteral     SExpr = Symbol("if")
 
-	DefaultEnvironment *Environ = MakeEnviron(
-		Symbol("car"), Invariant("car"),
-		Symbol("cdr"), Invariant("cdr"),
-		Symbol("cons"), Invariant("cons"),
-		Symbol("eq?"), Invariant("eq?"),
-		Symbol("symbol?"), Invariant("symbol?"),
-		Symbol("null?"), Invariant("null?"),
-		Symbol("apply"), Invariant("apply"),
-		Symbol("call/cc"), Invariant("call/cc"),
-		Symbol("exit"), Invariant("exit"),
-		Symbol("env"), Invariant("env"),
-		Symbol("time"), Invariant("time"),
-		Symbol("sleep"), Invariant("sleep"),
-		Symbol("+"), builtin{"+", Sum},
-		Symbol("-"), builtin{"-", Subtract},
-		Symbol("*"), builtin{"*", Product},
-		Symbol("/"), builtin{"/", Quotient},
-		//Symbol("^"), Invariant("^"),
-		//Symbol("%"), Invariant("%"),
-	)
+	DefaultEnvironment *Environ = BuildSymbolEnviron(map[string]SExpr{
+		"car":     Invariant("car"),
+		"cdr":     Invariant("cdr"),
+		"cons":    Invariant("cons"),
+		"eq?":     Invariant("eq?"),
+		"symbol?": Invariant("symbol?"),
+		"null?":   Invariant("null?"),
+		"apply":   Invariant("apply"),
+		"call/cc": Invariant("call/cc"),
+		"exit":    Invariant("exit"),
+		"env":     Invariant("env"),
+		"time":    Invariant("time"),
+		"sleep":   Invariant("sleep"),
+		"+":       builtin{"+", Sum},
+		"-":       builtin{"-", Subtract},
+		"*":       builtin{"*", Product},
+		"/":       builtin{"/", Quotient},
+		//"^": Invariant("^"),
+		//"%": Invariant("%"),
+	})
 
 	Exit error = fmt.Errorf("interpreter exited")
 )

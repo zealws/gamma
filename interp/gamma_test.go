@@ -16,7 +16,9 @@ var testCases = []testCase{
 	passEnv(
 		Symbol("foo"),
 		Symbol("bar"),
-		MakeEnviron(Symbol("foo"), Symbol("bar"))),
+		BuildSymbolEnviron(map[string]SExpr{
+			"foo": Symbol("bar"),
+		})),
 	pass(
 		mustParse("'(a b c d)"),
 		List(Symbol("a"), Symbol("b"), Symbol("c"), Symbol("d"))),
@@ -91,8 +93,14 @@ var testCases = []testCase{
 		Integer(1)),
 	passEnv(
 		mustParse("(env)"),
-		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar")),
-		MakeEnviron(Symbol("env"), Invariant("env"), Symbol("foo"), Symbol("bar"))),
+		BuildSymbolEnviron(map[string]SExpr{
+			"env": Invariant("env"),
+			"foo": Symbol("bar"),
+		}),
+		BuildSymbolEnviron(map[string]SExpr{
+			"env": Invariant("env"),
+			"foo": Symbol("bar"),
+		})),
 	pass(
 		mustParse("((lambda x 'foo) 'bar)"),
 		Symbol("foo")),

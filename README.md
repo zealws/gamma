@@ -12,7 +12,6 @@ Gamma is divided into separate submodules.
 - `gamma/sexpr` includes the type hierarchy for the gamma representation of [s-expressions](http://en.wikipedia.org/wiki/S-expression).
 - `gamma/parse` includes the gamma s-expression parsing library.
 - `gamma/interp` includes the interpreter implementation.
-- `gamma/transform` includes an s-expression manipulation library.
 
 Future Work
 -----------

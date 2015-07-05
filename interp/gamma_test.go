@@ -307,10 +307,11 @@ func failEnv(input SExpr, msg string, env *Environ) testCase {
 func TestEvaluatesTestCases(t *testing.T) {
 	for _, c := range testCases {
 		interp := NewInterpreter(c.env)
-		expr, err := interp.Evaluate(c.input)
+		s := newInterpStack()
+		expr, err := interp.schemeValue(c.env, s, c.input)
 		fail := c.check(t, expr, err)
 		if fail != "" {
-			fmt.Printf("--- TRACE(%d) ---\n%v\n--- END TRACE ---\n", TestTraceSize, interp.Trace().Last(TestTraceSize))
+			fmt.Printf("--- TRACE(%d) ---\n%v\n--- END TRACE ---\n", TestTraceSize, s.Trace().Last(TestTraceSize))
 			t.Error(fail)
 		}
 	}

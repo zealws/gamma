@@ -5,28 +5,41 @@ import (
 	"github.com/zfjagann/gamma/sexpr"
 	"runtime"
 	"strings"
+
+	"github.com/zfjagann/golang-ring"
 )
 
 const TraceMaxSize int = 1024 // 1K max frames in a stack trace
 
 /**
-*** Interpreter methods for stack traces
+*** Interpreter stack. Used for debugging purposes.
 **/
 
-func (in *Interpreter) trace(spec string, args ...sexpr.SExpr) {
-	if in.nextTrace {
-		in.stack.Enqueue(&StackFrame{spec, args})
+type interpStack struct {
+	*ring.Ring
+	nextTrace bool
+}
+
+func newInterpStack() *interpStack {
+	r := &ring.Ring{}
+	r.SetCapacity(TraceMaxSize)
+	return &interpStack{r, true}
+}
+
+func (stack *interpStack) trace(spec string, args ...sexpr.SExpr) {
+	if stack.nextTrace {
+		stack.Enqueue(&StackFrame{spec, args})
 	}
-	in.nextTrace = true
+	stack.nextTrace = true
 }
 
-func (in *Interpreter) ignoreNextTrace() {
-	in.nextTrace = false
+func (stack *interpStack) ignoreNextTrace() {
+	stack.nextTrace = false
 }
 
-func (in *Interpreter) Trace() StackTrace {
+func (stack *interpStack) Trace() StackTrace {
 	trace := make(StackTrace, 0, TraceMaxSize)
-	for _, v := range in.stack.Values() {
+	for _, v := range stack.Values() {
 		trace = append(trace, v.(*StackFrame))
 	}
 	return trace

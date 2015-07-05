@@ -5,7 +5,6 @@ import (
 	"time"
 
 	. "github.com/zfjagann/gamma/sexpr"
-	"github.com/zfjagann/golang-ring"
 )
 
 var (
@@ -40,15 +39,11 @@ var (
 )
 
 type Interpreter struct {
-	env       *Environ
-	stack     *ring.Ring
-	nextTrace bool
+	env *Environ
 }
 
 func NewInterpreter(env *Environ) *Interpreter {
-	stack := &ring.Ring{}
-	stack.SetCapacity(TraceMaxSize)
-	return &Interpreter{env, stack, true}
+	return &Interpreter{env}
 }
 
 func (in *Interpreter) define(symbol, expr SExpr) SExpr {
@@ -57,10 +52,10 @@ func (in *Interpreter) define(symbol, expr SExpr) SExpr {
 }
 
 func (in *Interpreter) Evaluate(expr SExpr) (SExpr, error) {
-	return in.schemeValue(in.env, expr)
+	return in.schemeValue(in.env, newInterpStack(), expr)
 }
 
-func (in *Interpreter) schemeValue(env *Environ, expr SExpr) (result SExpr, err error) {
+func (in *Interpreter) schemeValue(env *Environ, stack *interpStack, expr SExpr) (result SExpr, err error) {
 	defer func() {
 		e := recover()
 		if e != nil {
@@ -80,7 +75,7 @@ func (in *Interpreter) schemeValue(env *Environ, expr SExpr) (result SExpr, err 
 
 exprValue:
 	// evaluate the expression `expr` with regard to `env` and call `C` with the result
-	in.trace("exprValue(expr,env,C)", expr, env, C)
+	stack.trace("exprValue(expr,env,C)", expr, env, C)
 
 	if IsAtom(expr) {
 		// Atoms are fixed-points of the interpreter
@@ -144,7 +139,7 @@ exprValue:
 
 exprListValue:
 	// evaluate all the expressions in `exprList` and call `C` with the result
-	in.trace("exprListValue(exprList,C)", exprList, C)
+	stack.trace("exprListValue(exprList,C)", exprList, C)
 
 	if IsEq(exprList, Null) {
 		answer = Null
@@ -157,7 +152,7 @@ exprListValue:
 
 symValue:
 	// perform an environment lookup of `sym` within `env` and call `C` with the result
-	in.trace("symValue(sym,env,C)", sym, env, C)
+	stack.trace("symValue(sym,env,C)", sym, env, C)
 
 	answer, found = env.Get(sym)
 	if !found {
@@ -168,7 +163,7 @@ symValue:
 
 condValue:
 	// evaluate the cond block defined by `clauses` and call `C` with the result
-	in.trace("condValue(clauses,C)", clauses, C)
+	stack.trace("condValue(clauses,C)", clauses, C)
 
 	if IsNull(clauses) {
 		// (cond)
@@ -201,7 +196,7 @@ condValue:
 
 appValue:
 	// apply the operation `rator` with `randList` as arguments and call `C` with the result
-	in.trace("appValue(rator,randList,C)", rator, randList, C)
+	stack.trace("appValue(rator,randList,C)", rator, randList, C)
 
 	if bi, ok := rator.(builtin); ok {
 		exprList = randList
@@ -318,7 +313,7 @@ appValue:
 
 augmentedEnv:
 	// augment the environment `env` with symbols `symList` and values `randList` and call `C` with the modified environment
-	in.trace("augmentedEnv(symList,randList,env,C)", symList, randList, env, C)
+	stack.trace("augmentedEnv(symList,randList,env,C)", symList, randList, env, C)
 
 	answerEnv = env
 	for {
@@ -342,7 +337,7 @@ applyC:
 	// apply the continuation `C` to the value `answer`
 	// the continuation values defined below are a result of continuation function literals
 	// in the original scheme interpreter that have been translated to Go
-	in.trace("applyC(answer,C)", answer, C)
+	stack.trace("applyC(answer,C)", answer, C)
 
 	if C == CID {
 		// the program has finished computing

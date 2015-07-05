@@ -13,27 +13,28 @@ var (
 	condLiteral   SExpr = Symbol("cond")
 	elseLiteral   SExpr = Symbol("else")
 	ifLiteral     SExpr = Symbol("if")
+	pexecLiteral  SExpr = Symbol("pexec")
 
-	DefaultEnvironment *Environ = BuildSymbolEnviron(map[string]SExpr{
-		"car":     Invariant("car"),
-		"cdr":     Invariant("cdr"),
-		"cons":    Invariant("cons"),
-		"eq?":     Invariant("eq?"),
-		"symbol?": Invariant("symbol?"),
-		"null?":   Invariant("null?"),
-		"apply":   Invariant("apply"),
-		"call/cc": Invariant("call/cc"),
-		"exit":    Invariant("exit"),
-		"env":     Invariant("env"),
-		"time":    Invariant("time"),
-		"sleep":   Invariant("sleep"),
-		"+":       builtin{"+", Sum},
-		"-":       builtin{"-", Subtract},
-		"*":       builtin{"*", Product},
-		"/":       builtin{"/", Quotient},
-		//"^": Invariant("^"),
-		//"%": Invariant("%"),
-	})
+	DefaultEnvironment *Environ = MakeEnviron(
+		Symbol("car"), Invariant("car"),
+		Symbol("cdr"), Invariant("cdr"),
+		Symbol("cons"), Invariant("cons"),
+		Symbol("eq?"), Invariant("eq?"),
+		Symbol("symbol?"), Invariant("symbol?"),
+		Symbol("null?"), Invariant("null?"),
+		Symbol("apply"), Invariant("apply"),
+		Symbol("call/cc"), Invariant("call/cc"),
+		Symbol("exit"), Invariant("exit"),
+		Symbol("env"), Invariant("env"),
+		Symbol("time"), Invariant("time"),
+		Symbol("sleep"), Invariant("sleep"),
+		Symbol("+"), builtin{"+", Sum},
+		Symbol("-"), builtin{"-", Subtract},
+		Symbol("*"), builtin{"*", Product},
+		Symbol("/"), builtin{"/", Quotient},
+		//Symbol("^"), Invariant("^"),
+		//Symbol("%"), Invariant("%"),
+	)
 
 	Exit error = fmt.Errorf("interpreter exited")
 )
@@ -44,11 +45,6 @@ type Interpreter struct {
 
 func NewInterpreter(env *Environ) *Interpreter {
 	return &Interpreter{env}
-}
-
-func (in *Interpreter) define(symbol, expr SExpr) SExpr {
-	in.env = in.env.Put(symbol, expr)
-	return Null
 }
 
 func (in *Interpreter) Evaluate(expr SExpr) (SExpr, error) {
@@ -64,6 +60,8 @@ func (in *Interpreter) schemeValue(env *Environ, stack *interpStack, expr SExpr)
 			err = fmt.Errorf("panic: %v", e)
 		}
 	}()
+
+	// setup
 	var (
 		clauses, exprList, C, randList, rator, sym, symList, answer SExpr
 		found                                                       bool
@@ -71,6 +69,8 @@ func (in *Interpreter) schemeValue(env *Environ, stack *interpStack, expr SExpr)
 	)
 
 	C = CID
+
+	// start point
 	goto exprValue
 
 exprValue:
@@ -131,6 +131,13 @@ exprValue:
 		C = NewC8(defSym, C)
 		expr = defExpr
 		goto exprValue
+	} else if IsEq(Car(expr), pexecLiteral) {
+		val, err := ECadr(expr)
+		if err != nil {
+			return nil, fmt.Errorf("missing expression in pexec statement: %v", expr)
+		}
+		answer = in.makePexec(env, val)
+		goto applyC
 	} else {
 		C = NewC1(expr, env, C)
 		expr = Car(expr)
@@ -199,9 +206,11 @@ appValue:
 	stack.trace("appValue(rator,randList,C)", rator, randList, C)
 
 	if bi, ok := rator.(builtin); ok {
-		exprList = randList
-		C = bi.cont(C)
-		goto exprListValue
+		answer, err = bi.f(answer)
+		if err != nil {
+			return nil, err
+		}
+		goto applyC
 	} else if bi, ok := rator.(Invariant); ok {
 		switch string(bi) {
 		case "car":
@@ -303,6 +312,12 @@ appValue:
 		symList = clos.SymList
 		env = clos.Env
 		goto augmentedEnv
+	} else if thunk, ok := rator.(Thunk); ok {
+		answer, err = thunk.GetResult()
+		if err != nil {
+			return nil, err
+		}
+		goto applyC
 	} else if cont, ok := rator.(Continuation); ok {
 		C = cont.C
 		answer = Car(randList)
@@ -343,14 +358,7 @@ applyC:
 		// the program has finished computing
 		return answer, nil
 	}
-	if c, ok := C.(*builtinContinuation); ok {
-		answer, err = c.b.f(answer)
-		if err != nil {
-			return nil, err
-		}
-		C = c.C
-		goto applyC
-	} else if c, ok := C.(interpContinuation); ok {
+	if c, ok := C.(interpContinuation); ok {
 		switch c.id {
 		case "c1":
 			// C1 is the recursive call during a function application called after the rator has been evaluated
@@ -404,7 +412,7 @@ applyC:
 				// Cheap hack to make recursive functions work
 				clos.Env = clos.Env.Put(c.Symbol, clos)
 			}
-			in.define(c.Symbol, answer)
+			in.env = in.env.Put(c.Symbol, answer)
 			answer = Null
 			C = c.C
 			goto applyC
@@ -423,23 +431,4 @@ applyC:
 	} else {
 		return nil, fmt.Errorf("invalid continuation value: %v", C)
 	}
-}
-
-func randLength(randList SExpr) int {
-	l := 0
-	for {
-		if IsNull(randList) {
-			return l
-		}
-		l += 1
-		randList = Cdr(randList)
-	}
-}
-
-func checkLen(size int, rator, randList SExpr) error {
-	actual := randLength(randList)
-	if actual != size {
-		return fmt.Errorf("%v expects %d arguments but was given %d", rator, size, actual)
-	}
-	return nil
 }

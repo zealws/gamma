@@ -10,19 +10,6 @@ type builtin struct {
 	f func(SExpr) (SExpr, error)
 }
 
-func (b builtin) cont(C SExpr) SExpr {
-	return &builtinContinuation{b, C}
-}
-
-type builtinContinuation struct {
-	b builtin
-	C SExpr
-}
-
-func (c *builtinContinuation) String() string {
-	return "<" + string(c.b.Invariant) + ">"
-}
-
 type interpContinuation struct {
 	// These arguments are named after their arguments in the original scheme interpreter.
 	// They can probably be collapsed. No continuation uses more than 2 of the SExprs.

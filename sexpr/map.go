@@ -48,13 +48,15 @@ func NewEnviron() *Environ {
 }
 
 /*
-Builds an environment from the given map. The keys in the map are converted to
-symbols before being added to the environment.
+This seems like an awkward way to create an environment. Figure something else out in the future.
 */
-func BuildSymbolEnviron(exprs map[string]SExpr) *Environ {
+func MakeEnviron(expressions ...SExpr) *Environ {
+	if len(expressions)%2 != 0 {
+		panic("MakeEnviron expects even number of parameters")
+	}
 	e := NewEnviron()
-	for k, v := range exprs {
-		e = e.Put(Symbol(k), v)
+	for i := 0; i < len(expressions); i += 2 {
+		e = e.Put(expressions[i], expressions[i+1])
 	}
 	return e
 }
@@ -81,5 +83,5 @@ func (e *Environ) Put(key, value SExpr) *Environ {
 }
 
 func (e *Environ) String() string {
-	return fmt.Sprintf("<environ>")
+	return fmt.Sprintf("<environ %v>", e.Value)
 }

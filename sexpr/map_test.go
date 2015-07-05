@@ -17,11 +17,11 @@ func TestEnviron(t *testing.T) {
 	assertGetEq(t, e, Symbol("b"), Symbol("y"))
 	assertGetEq(t, e, Symbol("c"), Symbol("z"))
 
-	e = BuildSymbolEnviron(map[string]SExpr{
-		"a": Symbol("j"),
-		"b": Symbol("k"),
-		"c": Symbol("l"),
-	})
+	e = MakeEnviron(
+		Symbol("a"), Symbol("j"),
+		Symbol("b"), Symbol("k"),
+		Symbol("c"), Symbol("l"),
+	)
 
 	assertGetEq(t, e, Symbol("a"), Symbol("j"))
 	assertGetEq(t, e, Symbol("b"), Symbol("k"))

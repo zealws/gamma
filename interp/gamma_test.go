@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-const TestTraceSize = 2 // How many stack records to show on failure
+const TestTraceSize = 500 // How many stack records to show on failure
 
 var testCases = []testCase{
 	/**
@@ -16,9 +16,9 @@ var testCases = []testCase{
 	passEnv(
 		Symbol("foo"),
 		Symbol("bar"),
-		BuildSymbolEnviron(map[string]SExpr{
-			"foo": Symbol("bar"),
-		})),
+		MakeEnviron(
+			Symbol("foo"), Symbol("bar"),
+		)),
 	pass(
 		mustParse("'(a b c d)"),
 		List(Symbol("a"), Symbol("b"), Symbol("c"), Symbol("d"))),
@@ -93,14 +93,14 @@ var testCases = []testCase{
 		Integer(1)),
 	passEnv(
 		mustParse("(env)"),
-		BuildSymbolEnviron(map[string]SExpr{
-			"env": Invariant("env"),
-			"foo": Symbol("bar"),
-		}),
-		BuildSymbolEnviron(map[string]SExpr{
-			"env": Invariant("env"),
-			"foo": Symbol("bar"),
-		})),
+		MakeEnviron(
+			Symbol("env"), Invariant("env"),
+			Symbol("foo"), Symbol("bar"),
+		),
+		MakeEnviron(
+			Symbol("env"), Invariant("env"),
+			Symbol("foo"), Symbol("bar"),
+		)),
 	pass(
 		mustParse("((lambda x 'foo) 'bar)"),
 		Symbol("foo")),
@@ -113,6 +113,9 @@ var testCases = []testCase{
 	pass(
 		mustParse("(if #f 'a 'b)"),
 		Symbol("b")),
+	pass(
+		mustParse("((pexec 'a))"),
+		Symbol("a")),
 
 	/**
 	*** Negative Test Cases
@@ -311,7 +314,13 @@ func TestEvaluatesTestCases(t *testing.T) {
 		expr, err := interp.schemeValue(c.env, s, c.input)
 		fail := c.check(t, expr, err)
 		if fail != "" {
-			fmt.Printf("--- TRACE(%d) ---\n%v\n--- END TRACE ---\n", TestTraceSize, s.Trace().Last(TestTraceSize))
+			var stack *interpStack
+			if pe, ok := err.(*PexecError); ok {
+				stack = pe.Stack
+			} else {
+				stack = s
+			}
+			fmt.Printf("--- TRACE(%d) ---\n%v\n--- END TRACE ---\n", TestTraceSize, stack.Trace().Last(TestTraceSize))
 			t.Error(fail)
 		}
 	}
